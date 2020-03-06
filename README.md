@@ -14,7 +14,7 @@ variable and the output of the line dynamics are transferred to `JavaScript`. Al
 (such as B. the reference, parameters of the `PID controller`, etc. ) on the user interface, which is then fed back to 
 `MatLab/Simulink`. The corresponding block diagram of the project is shown in Figure 1. 
 
-![Figure 1: Block diagram of project](master/Blockschaltbild.png)
+![Figure 1: Block diagram of project](pics/Blockschaltbild.png)
 
 The interface between `MatLab` and `HTML` is realized with the `WebSocket` protocol because it has the property to maintain 
 an open connection while the user actively uses this open connection without asking the server for the answer. 
@@ -33,14 +33,14 @@ To ensure that user input is also required in the simulation, the function was a
 
 To allow a variable selection of the controller (e. g. B. P- , PI-, PD- and PID-controllers) it is recommended to create the transfer functions individually (see figure 2). A continuous system was chosen for the I and D component. As you can also see, each system is present in duplicate. The reason is that the quadcopter is to be controlled in both x and y-direction. The output is again a vector, which is output as controlled variable y. As input, the controller receives both the parameters entered by the user and the control deviation. A switch is also built-in, which prevents the controller from further integration even when the manual mode is switched on. The individual controller components are then added together and output as a vector. This output is the manipulated variable. 
 
-![Figure 2: PID Controller](master/Blockschaltbild.png)
+![Figure 2: PID Controller](pics/MatLab_PID.png)
 
 A continuous system was also chosen for the system dynamics. This is shown in red in Figure 3. And also for the reason that the quadcopter should be moved in both x- and y-direction, the double execution of the system dynamics. As input, it receives the manipulated variable, which can come from the IMU as well as from the controller. The other blocks shown in figure 3 are responsible for limiting the running surface of the quadcopter. The Saturation block ensures that the transfer function is followed by a limitation.
 
-![Figure 3: PID Controller](master/Blockschaltbild.png)
+![Figure 3: System Dynamics](pics/Dyn.png)
 
 ### Integration with Simulink 
 
 Simulink is used to perform the corresponding calculations of the movements of the quadcopter. Necessary blocks must be implemented in it to give a practical effect on the simulation. This is shown in Figure 4. As you can see, in Simulink the data is directly acquired from the IMU and converted with a MatLab function. The result of the conversion, as already mentioned, is the inclination of the IMU right/left and front/rear. Simulink also defines the WebSocket. It receives as input the controlled variable (y), the manipulated variable (u), the control deviation (error) and a time. The most important output from the web socket is only the user's input on the user interface. These are namely the parameters of the PID controller (Parameter), the reference (r), the input whether the controller (automatic) or the manual operation of the quadcopter should be used and whether a fixed defined controller K(s) should be used. For a harmonious interaction of the different components (e. g. B. automatic or manual) switches are used. These switches work with simple numbers that are output by the WebSocket, but on the user interface, this is only a simple checkmark. A 0 is output as soon as the controller is selected and the output of the PID controller is forwarded in the switch. Otherwise, a 5 is output and the user can operate the quadcopter manually. Switch1 works analogously.
 
-![Figure 4: Simulink data](master/Blockschaltbild.png)
+![Figure 4: Simulink data](pics/MatLab.png)
