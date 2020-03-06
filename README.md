@@ -45,4 +45,4 @@ Simulink is used to perform the corresponding calculations of the movements of t
 ![Figure 4: Simulink data](pics/MatLab.png)
 
 
-
+![Figure 4: End Layout](pics/Layout.png)
