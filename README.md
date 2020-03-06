@@ -20,8 +20,7 @@ The interface between `MatLab` and `HTML` is realized with the `WebSocket` proto
 an open connection while the user actively uses this open connection without asking the server for the answer. 
 This guarantees a real-time simulation. Since, as mentioned above, you also want to drive the quadcopter yourself in the 
 simulation, an inertial measurement unit (IMU) is used. The `Xsens MTw Awinda` sensor is used as `IMU`, which sends the acquired 
-data to a receiver via Bluetooth, whereby the receiver (dongle) is connected to the PC. The data arrives in Matlab as a 
-quaternion vector and is stored therein parameters necessary for us (e. g. B. Inclination forward/backward and left/right).
+data to a receiver via Bluetooth, whereby the receiver (dongle) is connected to the PC. The data arrives in MatLab `$ quatmul.m` as a quaternion vector and is stored therein parameters necessary for us (e. g. B. Inclination forward/backward and left/right).
 
 
 The development of the quadcopter and the whole environment of the animation in `HTML` and `JavaScript` can be found in file `$ indexWebSocket_v9_3_with_timer.html` . there is also the `Javascript` code that opens a `Websocket` and runs the simulation. As you can see, it also contains the library `$ Babylon.js`, which is needed for the 3D representation of the quadcopter. As soon as the quadcopter is close enough to the reference position, the time is stopped. If you enter it for a short time, but then leave it again, the time that has continued in the meantime is displayed. In addition, four real-time plots for the x and y direction are displayed in the user interface, each for the manipulated variable and the reference. This is to illustrate the performance of the controller or manual operation. 
@@ -44,3 +43,8 @@ A continuous system was also chosen for the system dynamics. This is shown in re
 Simulink is used to perform the corresponding calculations of the movements of the quadcopter. Necessary blocks must be implemented in it to give a practical effect on the simulation. This is shown in Figure 4. As you can see, in Simulink the data is directly acquired from the IMU and converted with a MatLab function. The result of the conversion, as already mentioned, is the inclination of the IMU right/left and front/rear. Simulink also defines the WebSocket. It receives as input the controlled variable (y), the manipulated variable (u), the control deviation (error) and a time. The most important output from the web socket is only the user's input on the user interface. These are namely the parameters of the PID controller (Parameter), the reference (r), the input whether the controller (automatic) or the manual operation of the quadcopter should be used and whether a fixed defined controller K(s) should be used. For a harmonious interaction of the different components (e. g. B. automatic or manual) switches are used. These switches work with simple numbers that are output by the WebSocket, but on the user interface, this is only a simple checkmark. A 0 is output as soon as the controller is selected and the output of the PID controller is forwarded in the switch. Otherwise, a 5 is output and the user can operate the quadcopter manually. Switch1 works analogously.
 
 ![Figure 4: Simulink data](pics/MatLab.png)
+
+
+### More pics from project
+
+![Figure 5](pics/102.jpg)
