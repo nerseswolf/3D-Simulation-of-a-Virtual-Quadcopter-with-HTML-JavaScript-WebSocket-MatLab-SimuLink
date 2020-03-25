@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+  <head>
+        <title>Quadcopter 3D animation</title>
+        <!-- Babylon.js -->
+        <script src="http://www.babylonjs.com/hand.minified-1.2.js"></script>
+        <script type="text/javascript" src="scripts/cannon.js"></script>
+        <script type="text/javascript" src="scripts/oimo.js"></script>
+        <script type="text/javascript" src="scripts/babylon.js"></script>
+        <script type="text/javascript" src="scripts/Regler.js"></script>// file for controller
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.27.0/smoothie.js"></script>
+        <script type="text/javascript" src="scripts/jquery-3.2.1.min.js"></script>
+    <style>
+
+		html, body {
+			overflow: hidden;
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+           }
+
+		#renderCanvas {
+			width: 100%;
+			height: 100%;
+			touch-action: none;
+           }
+		#plotOne{
+			position: absolute;
+			top: 730px;
+			left: 0;
+			width: 500;
+			height: 100;
+           }
+		#plotTwo{
+			position: absolute;
+			top: 120px;
+			left: 0;
+			width: 500;
+			height: 100;
+           }
+		#plotThree{
+			position: absolute;
+			top: 730px;
+			right: 0;
+			width: 500;
+			height: 100;
+            }
+		#plotFour{
+			position: absolute;
+			top: 120px;
+			right: 0;
+			width: 500;
+			height: 100;
+            }
+		#controller{
+			position: absolute;
+			left: 400px;
+			width: 100;
+			height: 100;
+            }
+        #controller1{
+			position: absolute;
+			left: 600px;
+			width: 100;
+			height: 100;
+            }
+		#position: {
+			position: absolute;
+			top: 0;
+			left: 100px;
+			width: 200;
+			height: 400;
+            }
+         #demo: {
+            text-align:center;
+            }
+         #demo2: {
+            text-align:center;
+            }
+    </style>
+  </head>
+<body>
+	</div>
+        <div id="canvasZone">
+
+        <div id="plotOne">
+            --- DEVIATION X ---
+            <br>
+            <canvas id="chartCanvasOne"></canvas>
+        </div>
+
+        <div id="plotTwo">
+             --- ACTUATING VARIABLE X ---
+            <br>
+            <canvas id="chartCanvasTwo"></canvas>
+        </div>
+
+        <div id="plotThree">
+            --- DEVIATION Y ---
+            <br>
+            <canvas id="chartCanvasThree"></canvas>
+        </div>
+
+        <div id="plotFour">
+			--- ACTUATING VARIABLE Y ---
+            <br>
+            <canvas id="chartCanvasFour"></canvas>
+        </div>
+        <div id="controller">
+            <form>
+                <input type="checkbox" id="controller_checkbox">
+                <label for="controller_checkbox">Controller</label><br>
+                <input type="checkbox" id="pos_checkbox">
+                <label for="pos_checkbox">1D Movement</label><br>
+                <input type="checkbox" id="K_checkbox">
+                <label for="K_checkbox">K(s)</label><br>
+                <button id="Enter" class="btn btn-danger pull-right col-xs-1" onclick="enterState()">
+          		<span class="glyphicon glyphicon-remove-circle"></span> Reset
+        		</button>
+            </form>
+        </div>
+        <div id="controller1">
+
+                <input type="number" id="p_gain" min="-100000" max="100000" defaultValue="0" step="5">
+                <label for="p_gain">kp</label><br>
+                <input type="number" id="i_gain" min="-100000" max="100000" defaultValue="0" step="5">
+                <label for="i_gain">ki</label><br>
+                <input type="number" id="d_gain" min="-10000" max="100000" defaultValue="0" step="5">
+                <label for="d_gain">kd</label><br>
+
+            </form>
+            <p>Time:</p>
+            <div id="demo" style="50%">
+            </div>
+        </div>
+
+        <div id="position">
+            <form>
+              <p>Reference:</p>
+
+                <input type="number" id="forward" min="-50" max="50" defaultValue="0" step="15">
+                <label for="forward">forward </label><br>
+                <input type="number" id="sideways" min="-50" max="50" defaultValue="0" step="15">
+                <label for="sideways">sideways </label><br>
+
+            </form>
+        </div>
+
+
+        <!--
+      <div class="container-canvas">
+        <button id="stop" class="btn btn-danger pull-right col-xs-1" onclick="stop()">
+          <span class="glyphicon glyphicon-remove-circle"></span> Stop
+        </button>
+      </div>
+      -->
+      <canvas id="renderCanvas"></canvas>
+
+
+    </div>
+
+    <script>
+
+        var plot_x_time_series = new TimeSeries();
+        var mv_xangle_time_series = new TimeSeries();
+        var plot_y_time_series = new TimeSeries();
+        var mv_yangle_time_series = new TimeSeries();
+
+
+        function createTimelineOne() {
+            var chart = new SmoothieChart({maxValue:50,minValue:-50});
+            chart.addTimeSeries(plot_x_time_series, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+            chart.streamTo(document.getElementById("chartCanvasOne"), 500);
+        }
+
+
+        function createTimelineTwo() {
+            var chart = new SmoothieChart({maxValue:1.5,minValue:-1.5});
+            chart.addTimeSeries(mv_xangle_time_series, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+            chart.streamTo(document.getElementById("chartCanvasTwo"), 500);
+        }
+
+        function createTimelineThree() {
+            var chart = new SmoothieChart({maxValue:50,minValue:-50});
+            chart.addTimeSeries(plot_y_time_series, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+            chart.streamTo(document.getElementById("chartCanvasThree"), 500);
+        }
+
+
+        function createTimelineFour() {
+            var chart = new SmoothieChart({maxValue:1.5,minValue:-1.5});
+            chart.addTimeSeries(mv_yangle_time_series, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 4 });
+            chart.streamTo(document.getElementById("chartCanvasFour"), 500);
+        }
+
+      createTimelineTwo();
+      createTimelineOne();
+      createTimelineThree();
+      createTimelineFour();
+    </script>
+
+
+	 <!-- Javascript code that opens a websocket and runs the simulation -->
+  	<script>
+        var socket;
+
+
+        // here begins the main function
+        $( document ).ready(function() {
+		  socketOpen = false;
+		  var canvas = document.getElementById("renderCanvas");
+		  var engine = new BABYLON.Engine(canvas, true);
+
+		  //var createScene = function () {
+			var scene = new BABYLON.Scene(engine);
+
+        	var camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, 3*Math.PI / 8, 70, BABYLON.Vector3.Zero(), scene);
+            camera.lowerBetaLimit = 0.1;
+            camera.upperBetaLimit = (Math.PI / 2) * 0.9;
+            camera.lowerRadiusLimit = 30;
+            camera.upperRadiusLimit = 550;
+        	camera.attachControl(canvas, true);
+
+        	var light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 100, 0), scene);
+            scene.clearColor = new BABYLON.Color3(1, 1, 1); // Background color gray (0.5, 0.5, 0.5)
+
+
+        	//Creation of a sphere
+        	//(name of the sphere, segments, diameter, scene)
+        	var sphere = BABYLON.Mesh.CreateSphere("sphere", 5.0, 5.0, scene);
+            sphere.material = new BABYLON.StandardMaterial("texturespere", scene);
+            sphere.material.diffuseTexture =  new BABYLON.Texture("102.jpg", scene);
+
+        	//Creation of a cylinder
+        	//(name, height, diameter, tessellation, scene, updatable)
+            //Balken
+        	var cylinderlu = BABYLON.Mesh.CreateCylinder("cylinderlu", 4, 0.4, 0.4, 30, 1, scene, false);
+            cylinderlu.parent = sphere;
+
+            var cylinderlo = BABYLON.Mesh.CreateCylinder("cylinderlu", 4, 0.4, 0.4, 30, 1, scene, false);
+            cylinderlo.parent = sphere;
+
+            var cylinderru = BABYLON.Mesh.CreateCylinder("cylinderlu", 4, 0.4, 0.4, 30, 1, scene, false);
+            cylinderru.parent = sphere;
+
+            var cylinderro = BABYLON.Mesh.CreateCylinder("cylinderlu", 4, 0.4, 0.4, 30, 1, scene, false);
+            cylinderro.parent = sphere;
+
+            //Propella
+            var cylinderLU = BABYLON.Mesh.CreateCylinder("cylinderlu", 3, 3, 3, 6, 1, scene, false);
+            cylinderLU.parent = sphere;
+
+
+            var cylinderLO = BABYLON.Mesh.CreateCylinder("cylinderlu", 3, 3, 3, 6, 1, scene, false);
+            cylinderLO.parent = sphere;
+
+
+            var cylinderRU = BABYLON.Mesh.CreateCylinder("cylinderlu", 3, 3, 3, 6, 1, scene, false);
+            cylinderRU.parent = sphere;
+
+
+            var cylinderRO = BABYLON.Mesh.CreateCylinder("cylinderlu", 3, 3, 3, 6, 1, scene, false);
+            cylinderRO.parent = sphere;
+
+
+        	// Creation of a torus
+        	// (name, diameter, thickness, tessellation, scene, updatable)
+        	var torus = BABYLON.Mesh.CreateTorus("torus", 5, 1, 10, scene, false);
+            torus.parent = sphere;
+
+
+            //Creation of a plane
+            var ground = BABYLON.Mesh.CreatePlane("ground", 100, scene);
+
+
+            var shadow = BABYLON.Mesh.CreateCylinder("cylinderT", 0.05, 5, 5, 32, 1, scene, false);
+            shadow.material = new BABYLON.StandardMaterial("texturespere", scene);
+            shadow.material.diffuseTexture =  new BABYLON.Texture("black.png", scene);
+            shadow.material.diffuseTexture.hasAlpha = true;//Have an alpha
+            shadow.material.diffuseTexture.alpha = 1;//Have an alpha
+            shadow.parent = sphere;
+
+            var flag = BABYLON.Mesh.CreateCylinder("flag", 20, 1, 1, 30, 1, scene, false);
+            flag.material = new BABYLON.StandardMaterial("texturespere", scene);
+            flag.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+
+        	// Moving elements
+        	sphere.position = new BABYLON.Vector3(0, 0, 0); // Using a vector
+        	cylinderlu.position = new BABYLON.Vector3(-3, 0, -3);
+            cylinderlu.rotation.x = Math.PI/2;
+            cylinderlu.rotation.y = Math.PI/4;
+            cylinderLU.position = new BABYLON.Vector3(-5, 0, -5)
+
+            cylinderlo.position = new BABYLON.Vector3(-3, 0, 3);
+            cylinderlo.rotation.x = Math.PI/2;
+            cylinderlo.rotation.y = -Math.PI/4;
+            cylinderLO.position = new BABYLON.Vector3(-5, 0, 5)
+
+            cylinderru.position = new BABYLON.Vector3(3, 0, -3);
+            cylinderru.rotation.x = Math.PI/2;
+            cylinderru.rotation.y = -Math.PI/4;
+            cylinderRU.position = new BABYLON.Vector3(5, 0, -5)
+
+            cylinderro.position = new BABYLON.Vector3(3, 0, 3);
+            cylinderro.rotation.x = Math.PI/2;
+            cylinderro.rotation.y = Math.PI/4;
+            cylinderRO.position = new BABYLON.Vector3(5, 0, 5)
+
+            ground.position.y = -20;
+            ground.rotation.x = Math.PI / 2;
+            shadow.position.y = ground.position.y;
+            flag.rotation.x = Math.PI;
+            flag.position.y = ground.position.y;
+
+
+            //Creation of a textured material
+            var ANMORUK = new BABYLON.StandardMaterial("textureAnmoruk", scene);
+            ANMORUK.diffuseTexture =  new BABYLON.Texture("ANMORUK.jpg", scene);
+            ANMORUK.backFaceCulling = false;//Show all the faces of the element
+
+
+            var materialPlane = new BABYLON.StandardMaterial("texturePlane", scene);
+            materialPlane.diffuseTexture = new BABYLON.Texture("Grass.png", scene);
+            materialPlane.diffuseTexture.uScale = 2.0;//Repeat 5 times on the Vertical Axes
+            materialPlane.diffuseTexture.vScale = 2.0;//Repeat 5 times on the Horizontal Axes
+            materialPlane.backFaceCulling = false;//Always show the front and the back of an element
+
+
+            //Apply the materials to meshes
+            ground.material = materialPlane;
+            cylinderLU.material = ANMORUK;
+            cylinderLO.material = ANMORUK;
+            cylinderRO.material = ANMORUK;
+            cylinderRU.material = ANMORUK;
+
+
+            var forward=0;
+            var sideways=0;
+            var a=0;
+            var b=0;
+            var use_controller = false;
+            var reachtime = 0;
+
+                // if WebSocket should use another port, change 9999 to your desired port address
+                var host = "ws://localhost:9999/ws";
+
+                // open WebSocket
+                socket = new WebSocket(host);
+                console.log("socket status: " + socket.readyState);
+
+                //define functionality of the WebSocket
+                if(socket){
+                    // if the connection is established, say so
+                    socket.onopen = function(){
+                        console.log("The connection has been opened");
+                        console.log("socket status: " + socket.readyState);
+                        socketflag = true;
+                        socketOpen = true;
+                    }
+                    // if the Server sent a message, do the following:
+                    socket.onmessage = function(message){
+                        var allVisData = JSON.parse(message.data);
+
+                        if(socketflag) {
+                            socketflag = false;
+				            console.log(message);
+				        }
+
+						use_controller = document.getElementById("controller_checkbox").checked; // Check the box of controller
+						checkState = document.getElementById("pos_checkbox").checked; // Check the box of controller
+						use_K = document.getElementById("K_checkbox").checked; // Check the box of controller
+
+				        if (checkState){
+							sideways = Number(document.getElementById("sideways").value);
+							forward = 0;
+						}
+
+				        else{
+							forward = Number(document.getElementById("forward").value);
+							sideways = Number(document.getElementById("sideways").value);
+						}
+
+						kp = Number(document.getElementById("p_gain").value)/1000;
+						ki = Number(document.getElementById("i_gain").value)/1000;
+						kd = Number(document.getElementById("d_gain").value)/1000;
+
+						if(forward != a || sideways != b){
+							reachtime = 0;
+						}else{
+							if(reachtime>10000){
+								reachtime = 10000;
+							}else {
+								reachtime = reachtime + 1/engine.getFps();
+							}
+						}
+
+						if (forward<-45) {
+							forward=-45;
+						}
+						if (forward>45) {
+							forward=45;
+						}
+						if (sideways>45) {
+							sideways=45;
+						}
+						if (sideways<-45) {
+							sideways=-45;
+						}
+
+						var Parameter = [kp,ki,kd];
+						var ref = [sideways, forward];
+
+                        if (use_controller) {
+                            var u_moaValuetoJson = {"u_moa" : 0};
+                        }
+                        else {
+							var u_moaValuetoJson = {"u_moa" : 5};
+                        }
+
+                        if (use_K) {
+                            var KoUValuetoJson = {"KoU" : 5};
+                        }
+                        else {
+							var KoUValuetoJson = {"KoU" : 0};
+                        }
+
+                        paramValuetoJson = {"Parameter" : Parameter};
+                        refValuetoJson = {"r" : ref};
+
+                        sendJsonToBinary(u_moaValuetoJson);
+                        sendJsonToBinary(paramValuetoJson);
+                        sendJsonToBinary(refValuetoJson);
+                        sendJsonToBinary(KoUValuetoJson);
+
+						flag.position.x = sideways;
+						flag.position.z = forward;
+
+						if (checkState){
+							sphere.rotation.z = -Number(allVisData.u[0]);
+							sphere.rotation.x = 0;
+
+							//sphere.position.z=Number(allVisData.y[1]);
+							sphere.position.x=Number(allVisData.y[0]);
+
+						}
+						else{
+							sphere.rotation.z = -Number(allVisData.u[0]);
+							sphere.rotation.x = Number(allVisData.u[1]);
+
+							sphere.position.z=Number(allVisData.y[1]);
+							sphere.position.x=Number(allVisData.y[0]);
+						}
+
+						if (Math.abs(sphere.position.z-forward)<2 && Math.abs(sphere.position.x-sideways)<2 ){
+							flag.material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+						}
+						else{
+							flag.material.diffuseColor = new BABYLON.Color3(1, 0, 0);
+							document.getElementById("demo").innerHTML = Math.round(1.7*reachtime);
+						}
+
+						a=forward;
+						b=sideways;
+
+                        //Update Plot
+                        plot_x_time_series.append(new Date().getTime(),Number(allVisData.error[0]));                // plot für x Error vom Qcopter
+                        mv_xangle_time_series.append(new Date().getTime(),Number(allVisData.u[0]));          // Plot für x Winkel vom Qcopter
+                        plot_y_time_series.append(new Date().getTime(),Number(allVisData.error[1]));               // plot für x Error vom Qcopter
+                        mv_yangle_time_series.append(new Date().getTime(),Number(allVisData.u[1]));          // Plot für x Winkel vom Qcopter
+
+                    }
+                    // if the Socket is closed, say so
+                    socket.onclose = function(){
+                        console.log("The connection has been closed");
+                        socketOpen = false;
+                    }
+                }
+                else{
+                    // report, if WebSocket could not be opened
+                    console.log("invalid socket");
+                }
+            //});
+
+            engine.runRenderLoop(function () {
+                scene.render();
+            });
+
+        });
+
+
+      // is called to send a json value to the running Binary
+        function sendJsonToBinary(ValuetoJson) {
+            var jsonString = JSON.stringify(ValuetoJson);
+            console.log(jsonString);
+            if (socketOpen)
+                 //send data as message to server, this also triggers the server to send new visualization data as response
+                socket.send(jsonString);
+        };
+
+
+
+  	</script>
+</body>
+
+</html>
